@@ -18,6 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Dump CPListItem SDK interface (debug)
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          INTF=$(find "$SDK/System/Library/Frameworks/CarPlay.framework/Modules/CarPlay.swiftmodule" -name "*.swiftinterface" | head -1)
+          echo "swiftinterface: $INTF"
+          grep -n -A2 -B2 "class CPListItem" "$INTF" | head -40
+          grep -n "handler" "$INTF" | head -20
+
       - name: Build unsigned iOS IPA (CarPlay enabled)
         run: |
           set -euo pipefail
