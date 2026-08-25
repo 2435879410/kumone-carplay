@@ -1,0 +1,111 @@
+import Foundation
+
+struct LyricLine: Identifiable, Hashable {
+    let id: Int
+    let time: TimeInterval
+    let text: String
+    var translation: String?
+    var romaji: String?
+}
+
+struct ParsedLyrics: Hashable {
+    var lines: [LyricLine] = []
+    var isInstrumental = false
+    var contributor: String?
+    var translationContributor: String?
+
+    var isEmpty: Bool { lines.isEmpty }
+
+    /// Index of the active line for a playback position.
+    func activeIndex(at time: TimeInterval) -> Int? {
+        guard !lines.isEmpty else { return nil }
+        var low = 0, high = lines.count - 1, result: Int? = nil
+        while low <= high {
+            let mid = (low + high) / 2
+            if lines[mid].time <= time {
+                result = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return result
+    }
+}
+
+enum LyricsParser {
+    /// Parses an LRC body into (time, text) pairs. Handles multiple timestamps
+    /// per line and both `.` / `:` millisecond separators.
+    static func parseLRC(_ lrc: String) -> [(time: TimeInterval, text: String)] {
+        var result: [(TimeInterval, String)] = []
+        let timeTag = #/\[(\d+):(\d+)(?:[.:](\d+))?\]/#
+
+        for rawLine in lrc.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            let matches = line.matches(of: timeTag)
+            guard !matches.isEmpty else { continue }
+            guard let lastMatch = matches.last else { continue }
+            let content = String(line[lastMatch.range.upperBound...])
+                .trimmingCharacters(in: .whitespaces)
+            for match in matches {
+                let min = Double(match.output.1) ?? 0
+                let sec = Double(match.output.2) ?? 0
+                var frac = 0.0
+                if let msStr = match.output.3, let ms = Double(msStr) {
+                    frac = ms / pow(10, Double(msStr.count))
+                }
+                result.append((min * 60 + sec + frac, content))
+            }
+        }
+        return result.sorted { $0.0 < $1.0 }
+    }
+
+    static func parse(_ response: LyricResponse) -> ParsedLyrics {
+        var out = ParsedLyrics()
+        out.contributor = response.lyricUser?.nickname
+        out.translationContributor = response.transUser?.nickname
+
+        guard let raw = response.lrc?.lyric, !raw.isEmpty else { return out }
+        var main = parseLRC(raw)
+
+        // Instrumental marker handling (mirrors YesPlayMusic).
+        let instrumentalMarker = "纯音乐，请欣赏"
+        if main.count <= 10, main.contains(where: { $0.text.contains(instrumentalMarker) }) {
+            out.isInstrumental = true
+            main.removeAll { line in
+                line.text.contains(instrumentalMarker)
+                    || line.text.range(of: #"^作(词|曲)\s*[:：]"#, options: .regularExpression) != nil
+            }
+            if main.isEmpty {
+                return out
+            }
+        }
+        main.removeAll { $0.text.range(of: #"^作(词|曲)\s*[:：]\s*无$"#, options: .regularExpression) != nil }
+
+        var lines = main.enumerated().map { idx, pair in
+            LyricLine(id: idx, time: pair.time, text: pair.text)
+        }
+
+        func merge(_ body: String?, into keyPath: WritableKeyPath<LyricLine, String?>) {
+            guard let body, !body.isEmpty else { return }
+            let secondary = parseLRC(body)
+            guard !secondary.isEmpty else { return }
+            var byTime: [Int: String] = [:]
+            for (time, text) in secondary where !text.isEmpty {
+                byTime[Int(time * 100)] = text
+            }
+            for i in lines.indices {
+                if let text = byTime[Int(lines[i].time * 100)] {
+                    lines[i][keyPath: keyPath] = text
+                }
+            }
+        }
+
+        merge(response.tlyric?.lyric, into: \.translation)
+        merge(response.romalrc?.lyric, into: \.romaji)
+
+        out.lines = lines
+        return out
+    }
+}
