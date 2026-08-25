@@ -11,9 +11,9 @@ fi
 
 LDID="$(pwd)/tools-bin/ldid"
 ENT="$(pwd)/CarPlay.entitlements"
-OUT="${IPA%.ipa}-carplay.ipa"
+OUT="$(cd "$(dirname "$IPA")" && pwd)/$(basename "${IPA%.ipa}")-carplay.ipa"
 WORK="$(mktemp -d)"
-trap \'rm -rf "$WORK"\' EXIT
+trap "rm -rf '$WORK'" EXIT
 
 unzip -q "$IPA" -d "$WORK"
 APP="$WORK/Payload/KumoneIOS.app"
