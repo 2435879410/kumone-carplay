@@ -80,6 +80,7 @@ final class CarPlayTrackBatch {
 
 /// 构建 CarPlay 模板树。模板构建与数据加载分离：列表先以「加载中」占位展示，
 /// 数据到达后原地刷新，失败时展示可点按重试的错误项。
+/// 注意：iOS 26 SDK 中 CPListItem 不再提供带 handler 的构造器，handler 为属性赋值。
 enum KumoneCarPlayTemplates {
 
     // MARK: Root
@@ -254,17 +255,19 @@ enum KumoneCarPlayTemplates {
     }
 
     private static func playAllItem(batch: CarPlayTrackBatch) -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "播放全部"),
             detailText: String(localized: "\(batch.tracks.count) 首"),
             image: UIImage(systemName: "play.fill"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 PlayerService.shared.play(tracks: batch.tracks, source: batch.source)
             }
             completion()
         }
+        return item
     }
 
     private static func trackItem(_ track: Track, batch: CarPlayTrackBatch) -> CPListItem {
@@ -272,7 +275,8 @@ enum KumoneCarPlayTemplates {
             text: track.name,
             detailText: track.artistNames,
             image: nil, accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 PlayerService.shared.play(tracks: batch.tracks, source: batch.source, startAt: track)
             }
@@ -287,7 +291,8 @@ enum KumoneCarPlayTemplates {
             text: playlist.name,
             detailText: playlist.trackCount > 0 ? String(localized: "\(playlist.trackCount) 首") : nil,
             image: nil, accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     playlistList(id: playlist.id, title: playlist.name),
@@ -305,7 +310,8 @@ enum KumoneCarPlayTemplates {
             text: list.name,
             detailText: list.updateFrequency,
             image: nil, accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     playlistList(id: list.id, title: list.name),
@@ -319,12 +325,13 @@ enum KumoneCarPlayTemplates {
     }
 
     private static func dailyItem() -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "每日推荐"),
             detailText: String(localized: "根据你的口味 · 每天 6:00 更新"),
             image: UIImage(systemName: "calendar"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     dailyList(), animated: true, completion: nil
@@ -332,15 +339,17 @@ enum KumoneCarPlayTemplates {
             }
             completion()
         }
+        return item
     }
 
     private static func fmItem() -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "私人漫游"),
             detailText: String(localized: "按你的口味随机播放"),
             image: UIImage(systemName: "wave.3.right"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 if AccountStore.shared.isLoggedIn {
                     PlayerService.shared.startFM()
@@ -352,15 +361,17 @@ enum KumoneCarPlayTemplates {
             }
             completion()
         }
+        return item
     }
 
     private static func recentItem() -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "最近播放"),
             detailText: nil,
             image: UIImage(systemName: "clock.fill"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     recentList(), animated: true, completion: nil
@@ -368,15 +379,17 @@ enum KumoneCarPlayTemplates {
             }
             completion()
         }
+        return item
     }
 
     private static func loginItem() -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "登录 Kumone"),
             detailText: String(localized: "在 iPhone 上扫码登录后，这里会显示你的歌单"),
             image: UIImage(systemName: "person.crop.circle.badge.plus"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     loginAlert(), animated: true, completion: nil
@@ -384,6 +397,7 @@ enum KumoneCarPlayTemplates {
             }
             completion()
         }
+        return item
     }
 
     private static func loginAlert() -> CPAlertTemplate {
@@ -397,21 +411,22 @@ enum KumoneCarPlayTemplates {
         CPListItem(
             text: String(localized: "正在加载…"),
             detailText: nil,
-            image: nil, accessoryImage: nil, accessoryType: .none,
-            handler: nil
+            image: nil, accessoryImage: nil, accessoryType: .none
         )
     }
 
     private static func errorItem(_ error: Error, retry: @escaping () -> Void) -> CPListItem {
-        CPListItem(
+        let item = CPListItem(
             text: String(localized: "加载失败，点按重试"),
             detailText: error.localizedDescription,
             image: UIImage(systemName: "exclamationmark.triangle"),
             accessoryImage: nil, accessoryType: .none
-        ) { _, completion in
+        )
+        item.handler = { _, completion in
             MainActor.assumeIsolated { retry() }
             completion()
         }
+        return item
     }
 
     private static func loadArtwork(for item: CPListItem, url: URL?) {

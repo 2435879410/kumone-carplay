@@ -18,17 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Dump CPListItem SDK interface (debug)
-        run: |
-          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          echo "SDK=$SDK"
-          ls "$SDK/System/Library/Frameworks/" | grep -i carplay
-          find "$SDK/System/Library/Frameworks/CarPlay.framework" -name "*.swiftinterface" | head -5
-          HDR=$(find "$SDK/System/Library/Frameworks/CarPlay.framework" -name "CPListItem.h" | head -1)
-          echo "HDR=$HDR"
-          grep -n -B2 -A6 "handler" "$HDR" | head -50
-          grep -n -B2 -A4 "initWithText" "$HDR" | head -60
-
       - name: Build unsigned iOS IPA (CarPlay enabled)
         run: |
           set -euo pipefail
