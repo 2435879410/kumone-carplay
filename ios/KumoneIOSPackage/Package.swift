@@ -18,7 +18,8 @@ let package = Package(
         .target(
             name: "KumoneIOSFeature",
             dependencies: [
-                .product(name: "KumoneCore", package: "kumone"),
+                // SPM 包身份 = 检出目录名（本 fork 为 kumone-carplay，上游为 kumone）。
+                .product(name: "KumoneCore", package: "kumone-carplay"),
             ],
             path: "Sources/KumoneIOSFeature"
         ),
