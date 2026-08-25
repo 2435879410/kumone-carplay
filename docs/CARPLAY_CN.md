@@ -88,6 +88,7 @@ ESign 导入 IPA 后，在「签名」设置里导入 `CarPlay.entitlements` 文
 ## 常见问题
 
 - **车机上找不到 Kumone？** 九成是签名时没有注入 `com.apple.developer.playable-content`，请按第二节重新签名安装；另外确认车机 CarPlay 设置里允许显示该应用。
+- **怎么判断签名后的 IPA 有没有 CarPlay 权限？** 用 `Scripts/check-carplay-entitlements.sh <你的IPA>`：它会解包并打印二进制里实际嵌入的 entitlements，输出 ✅/❌ 一目了然（Apple 签名的还会顺带检查 embedded.mobileprovision 描述文件）。注意：权限不在“证书”上——AltStore 等个人证书的权限来自描述文件（免费账号不含 CarPlay 能力），TrollStore/ESign 的权限来自注入的 entitlements。
 - **CarPlay 里点歌没声音？** 手机端确认 App 已登录且能正常播放；CarPlay 与手机共用同一个播放引擎。
 - **覆盖安装会不会丢登录？** 本 IPA 与原版 IPA 使用相同 bundle id（`sb.moe.kumone`），用同一工具覆盖安装会保留登录状态与设置。
 - **为什么不上架 / 不进 TestFlight？** 网易云非官方客户端 + CarPlay 权限审批，均不符合 Apple 政策，仅限个人学习侧载。
