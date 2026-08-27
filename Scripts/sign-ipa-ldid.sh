@@ -19,7 +19,7 @@ unzip -q "$IPA" -d "$WORK"
 APP="$WORK/Payload/KumoneIOS.app"
 [[ -d "$APP" ]] || { echo "未找到 Payload/KumoneIOS.app" >&2; exit 1; }
 
-# 给主二进制注入 CarPlay 权限（com.apple.developer.playable-content）
+# 给主二进制注入 iOS 14+ CarPlay 音频权限和兼容旧发现路径的权限
 "$LDID" -S"$ENT" "$APP/KumoneIOS"
 echo "entitlements 注入完成:"
 "$LDID" -e "$APP/KumoneIOS" | plutil -p - 2>/dev/null || "$LDID" -e "$APP/KumoneIOS"

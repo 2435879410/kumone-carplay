@@ -10,7 +10,7 @@ permissions:
 
 env:
   APP_NAME: Kumone
-  VERSION: 0.3.1-ios15-carplay
+  VERSION: 0.3.2-ios15-carplay
 
 jobs:
   build-ipa:
@@ -49,8 +49,12 @@ jobs:
           BIN="$APP/$APP_NAME"IOS
           ldid -S"$GITHUB_WORKSPACE/CarPlay.entitlements" "$BIN"
           ldid -e "$BIN" | tee "$GITHUB_WORKSPACE/embedded-entitlements.plist"
-          grep -q 'com.apple.developer.playable-content' "$GITHUB_WORKSPACE/embedded-entitlements.plist"
-          grep -A1 'com.apple.developer.playable-content' "$GITHUB_WORKSPACE/embedded-entitlements.plist" | grep -q '<true/>'
+          for entitlement in \
+            com.apple.developer.carplay-audio \
+            com.apple.developer.playable-content; do
+            grep -q "$entitlement" "$GITHUB_WORKSPACE/embedded-entitlements.plist"
+            grep -A1 "$entitlement" "$GITHUB_WORKSPACE/embedded-entitlements.plist" | grep -q '<true/>'
+          done
           (cd payload && zip -qry "$GITHUB_WORKSPACE/$APP_NAME-iOS-$VERSION.ipa" Payload)
 
       - name: Upload TrollStore IPA and verification files
@@ -58,7 +62,7 @@ jobs:
         with:
           name: Kumone-iOS-15.3.1-CarPlay-TrollStore
           path: |
-            Kumone-iOS-0.3.1-ios15-carplay.ipa
+            Kumone-iOS-0.3.2-ios15-carplay.ipa
             CarPlay.entitlements
             embedded-entitlements.plist
           if-no-files-found: error
