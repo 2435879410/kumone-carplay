@@ -12,7 +12,7 @@ extension EnvironmentValues {
 }
 
 struct PlayerChromeModifier: ViewModifier {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
     let detailWidth: CGFloat
 
     func body(content: Content) -> some View {
@@ -70,34 +70,68 @@ enum Destination: Hashable {
     case search(String)
 }
 
+/// Renders a destination directly on iOS 15, where value-based navigation
+/// and NavigationStack are unavailable.
+private struct DestinationContent: View {
+    let destination: Destination
+
+    @ViewBuilder
+    var body: some View {
+        switch destination {
+        case .playlist(let id):
+            PlaylistDetailView(playlistID: id)
+        case .album(let id):
+            AlbumDetailView(albumID: id)
+        case .artist(let id):
+            ArtistDetailView(artistID: id)
+        case .daily:
+            DailySongsView()
+        case .toplists:
+            ToplistsView()
+        case .recents:
+            RecentsView()
+        case .collections:
+            CollectionsView()
+        case .cloud:
+            CloudView()
+        case .search(let query):
+            SearchView(query: query)
+        }
+    }
+}
+
+struct DestinationLink<Label: View>: View {
+    let value: Destination
+    @ViewBuilder let label: () -> Label
+
+    var body: some View {
+        #if os(iOS)
+        NavigationLink {
+            DestinationContent(destination: value)
+                .playerContentInset()
+        } label: {
+            label()
+        }
+        #else
+        NavigationLink(value: value) {
+            label()
+        }
+        #endif
+    }
+}
+
 /// Registers all shared navigation destinations on a stack.
 struct DestinationsModifier: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
+        #if os(iOS)
+        content
+        #else
         content.navigationDestination(for: Destination.self) { destination in
-            Group {
-                switch destination {
-                case .playlist(let id):
-                    PlaylistDetailView(playlistID: id)
-                case .album(let id):
-                    AlbumDetailView(albumID: id)
-                case .artist(let id):
-                    ArtistDetailView(artistID: id)
-                case .daily:
-                    DailySongsView()
-                case .toplists:
-                    ToplistsView()
-                case .recents:
-                    RecentsView()
-                case .collections:
-                    CollectionsView()
-                case .cloud:
-                    CloudView()
-                case .search(let query):
-                    SearchView(query: query)
-                }
+            DestinationContent(destination: destination)
+                .playerContentInset()
             }
-            .playerContentInset()
-        }
+        #endif
     }
 }
 

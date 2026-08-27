@@ -80,8 +80,8 @@ private final class KeylessWindow: NSWindow {
 /// Screen-sized transparent surface positioning the lyric box by two 0…1
 /// factors (x from left, y from top), draggable with an 8pt center snap.
 private struct DesktopLyricsSurface: View {
-    @State private var player = PlayerService.shared
-    @State private var settings = SettingsManager.shared
+    @StateObject private var player = PlayerService.shared
+    @StateObject private var settings = SettingsManager.shared
 
     @AppStorage("desktopLyrics.xFactor") private var xFactor = 0.5
     @AppStorage("desktopLyrics.yFactor") private var yFactor = 0.9
@@ -111,14 +111,14 @@ private struct DesktopLyricsSurface: View {
                         }
                 )
         }
-        .environment(player)
-        .environment(settings)
+        .environmentObject(player)
+        .environmentObject(settings)
     }
 }
 
 private struct DesktopLyricsBox: View {
-    @Environment(PlayerService.self) private var player
-    @Environment(SettingsManager.self) private var settings
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var settings: SettingsManager
 
     private var currentLine: LyricLine? {
         guard player.isPlaying || player.progress > 0,

@@ -3,14 +3,14 @@ name: iOS IPA (CarPlay)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, ios15.3.1-carplay]
 
 permissions:
   contents: read
 
 env:
   APP_NAME: Kumone
-  VERSION: 0.3.0-carplay
+  VERSION: 0.3.1-ios15-carplay
 
 jobs:
   build-ipa:
@@ -18,30 +18,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build unsigned iOS IPA (CarPlay enabled)
+      - name: Build iOS 15-compatible app
         run: |
           set -euo pipefail
           xcodebuild -workspace ios/KumoneIOS.xcworkspace -scheme KumoneIOS \
             -configuration Release -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/ios-dd" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="1" \
             build
 
           APP="$RUNNER_TEMP/ios-dd/Build/Products/Release-iphoneos/$APP_NAME"IOS.app
-          echo "=== 验证产物 Info.plist 中的 CarPlay 场景配置 ==="
+          BIN="$APP/$APP_NAME"IOS
+          echo "=== Minimum OS ==="
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$APP/Info.plist"
+          xcrun vtool -show-build "$BIN"
+          echo "=== CarPlay scene and background audio ==="
           /usr/libexec/PlistBuddy -c "Print :UIApplicationSceneManifest" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$APP/Info.plist"
 
           mkdir -p payload/Payload
           cp -R "$APP" payload/Payload/
-          (cd payload && zip -qry "$GITHUB_WORKSPACE/$APP_NAME-iOS-$VERSION-unsigned.ipa" Payload)
-          ls -la "$GITHUB_WORKSPACE"
 
-      - name: Upload unsigned IPA + entitlements
+      - name: Ad-hoc sign with CarPlay entitlement for TrollStore
+        run: |
+          set -euo pipefail
+          brew install ldid
+          APP="$GITHUB_WORKSPACE/payload/Payload/$APP_NAME"IOS.app
+          BIN="$APP/$APP_NAME"IOS
+          ldid -S"$GITHUB_WORKSPACE/CarPlay.entitlements" "$BIN"
+          ldid -e "$BIN" | tee "$GITHUB_WORKSPACE/embedded-entitlements.plist"
+          grep -q 'com.apple.developer.playable-content' "$GITHUB_WORKSPACE/embedded-entitlements.plist"
+          grep -A1 'com.apple.developer.playable-content' "$GITHUB_WORKSPACE/embedded-entitlements.plist" | grep -q '<true/>'
+          (cd payload && zip -qry "$GITHUB_WORKSPACE/$APP_NAME-iOS-$VERSION.ipa" Payload)
+
+      - name: Upload TrollStore IPA and verification files
         uses: actions/upload-artifact@v4
         with:
-          name: Kumone-iOS-carplay-unsigned
+          name: Kumone-iOS-15.3.1-CarPlay-TrollStore
           path: |
-            Kumone-iOS-0.3.0-carplay-unsigned.ipa
+            Kumone-iOS-0.3.1-ios15-carplay.ipa
             CarPlay.entitlements
+            embedded-entitlements.plist
           if-no-files-found: error

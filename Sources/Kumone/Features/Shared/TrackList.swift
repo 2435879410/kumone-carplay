@@ -23,8 +23,8 @@ struct TrackRow: View {
     var onRemoved: (() -> Void)?
     let onPlay: () -> Void
 
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isHovering = false
     @State private var showAddToPlaylist = false
@@ -74,7 +74,7 @@ struct TrackRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if style == .full && !isCompact {
-                NavigationLink(value: Destination.album(track.album.id)) {
+                DestinationLink(value: Destination.album(track.album.id)) {
                     Text(track.album.name)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
@@ -200,12 +200,12 @@ struct TrackRow: View {
         }
         Divider()
         if track.album.id > 0 {
-            NavigationLink(value: Destination.album(track.album.id)) {
+            DestinationLink(value: Destination.album(track.album.id)) {
                 Text("查看专辑")
             }
         }
         ForEach(track.artists.prefix(3)) { artist in
-            NavigationLink(value: Destination.artist(artist.id)) {
+            DestinationLink(value: Destination.artist(artist.id)) {
                 Text("查看歌手：\(artist.name)")
             }
         }
@@ -249,8 +249,8 @@ struct TrackListView: View {
     var removableFromPlaylistID: Int?
     var onRemoved: ((Track) -> Void)?
 
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
 
     var body: some View {
         LazyVStack(spacing: 1) {
@@ -289,7 +289,7 @@ struct TrackListView: View {
 struct AddToPlaylistSheet: View {
     let track: Track
 
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.dismiss) private var dismiss
     @State private var newName = ""
     @State private var creating = false

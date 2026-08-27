@@ -1,8 +1,8 @@
 import SwiftUI
+import Combine
 
 @MainActor
-@Observable
-final class HomeViewModel {
+final class HomeViewModel: ObservableObject {
     /// Shared so the loaded page survives sidebar switches (no skeleton flash).
     static let shared = HomeViewModel()
 
@@ -27,13 +27,13 @@ final class HomeViewModel {
         let coverURL: String?
     }
 
-    var state: State = .idle
-    var recommendPlaylists: [PlaylistSummary] = []
-    var radarPlaylists: [RadarPlaylist] = []
-    var toplists: [ToplistItem] = []
-    var newAlbums: [AlbumSummary] = []
-    var topArtists: [ArtistSummary] = []
-    var dailyFirstCover: String?
+    @Published var state: State = .idle
+    @Published var recommendPlaylists: [PlaylistSummary] = []
+    @Published var radarPlaylists: [RadarPlaylist] = []
+    @Published var toplists: [ToplistItem] = []
+    @Published var newAlbums: [AlbumSummary] = []
+    @Published var topArtists: [ArtistSummary] = []
+    @Published var dailyFirstCover: String?
 
     func load(loggedIn: Bool) async {
         if case .loaded = state { return }
@@ -105,9 +105,9 @@ final class HomeViewModel {
 }
 
 struct HomeView: View {
-    @Environment(AccountStore.self) private var account
-    @Environment(PlayerService.self) private var player
-    @State private var model = HomeViewModel.shared
+    @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var player: PlayerService
+    @StateObject private var model = HomeViewModel.shared
 
     var body: some View {
         ScrollView {
@@ -266,7 +266,6 @@ struct HomeView: View {
             }
             .padding(.vertical, 6)
         }
-        .scrollClipDisabled() // hover scale must not be clipped (#11)
     }
 
     private func startHeartbeatMode() {

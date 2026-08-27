@@ -1,12 +1,11 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(SettingsManager.self) private var settings
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var settings: SettingsManager
+    @EnvironmentObject private var account: AccountStore
     @State private var cacheSize: String = String(localized: "计算中…")
 
     var body: some View {
-        @Bindable var settings = settings
         Form {
             Section("播放") {
                 Picker("音质", selection: $settings.audioQuality) {
@@ -39,7 +38,7 @@ struct SettingsView: View {
             }
 
             Section("存储") {
-                LabeledContent("图片缓存", value: cacheSize)
+                SettingsValueRow(title: "图片缓存", value: cacheSize)
                 Button("清除缓存") {
                     clearCache()
                 }
@@ -47,7 +46,7 @@ struct SettingsView: View {
 
             Section("账号") {
                 if let profile = account.profile {
-                    LabeledContent("当前账号", value: profile.nickname)
+                    SettingsValueRow(title: "当前账号", value: profile.nickname)
                     Button("退出登录", role: .destructive) {
                         Task { await AccountStore.shared.logout() }
                     }
@@ -58,7 +57,7 @@ struct SettingsView: View {
             }
 
             Section("关于") {
-                LabeledContent("Kumone", value: appVersion)
+                SettingsValueRow(title: "Kumone", value: appVersion)
                 #if os(iOS)
                 Button {
                     IOSUpdater.shared.check(interactive: true)
@@ -76,8 +75,8 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
         #if os(macOS)
+        .formStyle(.grouped)
         .frame(width: 440, height: 480)
         #endif
         .task { updateCacheSize() }
@@ -117,6 +116,20 @@ struct SettingsView: View {
                 cacheSize = String(localized: "0 字节")
                 ToastCenter.shared.show(String(localized: "缓存已清除"))
             }
+        }
+    }
+}
+
+private struct SettingsValueRow: View {
+    let title: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
         }
     }
 }

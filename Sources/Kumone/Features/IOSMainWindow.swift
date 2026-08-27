@@ -2,36 +2,36 @@ import SwiftUI
 
 #if os(iOS)
 public struct IOSMainWindow: View {
-    @State private var player = PlayerService.shared
-    @State private var account = AccountStore.shared
-    @State private var settings = SettingsManager.shared
-    @State private var toasts = ToastCenter.shared
+    @StateObject private var player = PlayerService.shared
+    @StateObject private var account = AccountStore.shared
+    @StateObject private var settings = SettingsManager.shared
+    @StateObject private var toasts = ToastCenter.shared
+    @StateObject private var updater = IOSUpdater.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var selectedTab: IOSTab = .home
     @State private var showLogin = false
-    @State private var homePath = NavigationPath()
-    @State private var explorePath = NavigationPath()
-    @State private var fmPath = NavigationPath()
-    @State private var searchPath = NavigationPath()
-    @State private var libraryPath = NavigationPath()
-
     public init() {}
 
     public var body: some View {
         Group {
             if UIDevice.current.userInterfaceIdiom == .pad {
-                // iPad / Large screen: Split view
-                MainWindow()
+                if #available(iOS 16.0, *) {
+                    // Keep the native split view on newer iPads.
+                    MainWindow()
+                } else {
+                    // NavigationSplitView does not exist on iOS 15.
+                    tabInterface
+                }
             } else {
                 // iPhone / Compact screen: Tab view
                 tabInterface
             }
         }
-        .environment(player)
-        .environment(account)
-        .environment(settings)
-        .environment(toasts)
+        .environmentObject(player)
+        .environmentObject(account)
+        .environmentObject(settings)
+        .environmentObject(toasts)
         .tint(Theme.accent)
         .preferredColorScheme(settings.appearance.colorScheme)
         .environment(\.openLogin, { showLogin = true })
@@ -40,19 +40,19 @@ public struct IOSMainWindow: View {
             // Quiet auto-check on launch: only surfaces a sheet if newer.
             IOSUpdater.shared.check(interactive: false)
         }
-        .sheet(isPresented: Bindable(IOSUpdater.shared).showSheet) {
+        .sheet(isPresented: $updater.showSheet) {
             IOSUpdaterSheet()
         }
         .sheet(isPresented: $showLogin) {
             LoginSheet()
-                .environment(account)
-                .environment(toasts)
+                .environmentObject(account)
+                .environmentObject(toasts)
         }
-        .fullScreenCover(isPresented: Bindable(player).showNowPlaying) {
+        .fullScreenCover(isPresented: $player.showNowPlaying) {
             NowPlayingView()
-                .environment(player)
-                .environment(account)
-                .environment(settings)
+                .environmentObject(player)
+                .environmentObject(account)
+                .environmentObject(settings)
         }
         .overlay(alignment: .top) {
             if let toast = toasts.current {
@@ -67,46 +67,51 @@ public struct IOSMainWindow: View {
     private var tabInterface: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
-                NavigationStack {
+                NavigationView {
                     HomeView()
                         .appDestinations()
                 }
+                .navigationViewStyle(StackNavigationViewStyle())
                 .tabItem {
                     Label("推荐", systemImage: "house.fill")
                 }
                 .tag(IOSTab.home)
 
-                NavigationStack {
+                NavigationView {
                     ExploreView()
                         .appDestinations()
                 }
+                .navigationViewStyle(StackNavigationViewStyle())
                 .tabItem {
                     Label("精选", systemImage: "square.grid.2x2.fill")
                 }
                 .tag(IOSTab.explore)
 
-                NavigationStack {
+                NavigationView {
                     FMView()
                         .appDestinations()
                 }
+                .navigationViewStyle(StackNavigationViewStyle())
                 .tabItem {
                     Label("漫游", systemImage: "wave.3.right.circle.fill")
                 }
                 .tag(IOSTab.fm)
 
-                NavigationStack {
+                NavigationView {
                     SearchView(query: "")
                         .appDestinations()
                 }
+                .navigationViewStyle(StackNavigationViewStyle())
                 .tabItem {
                     Label("搜索", systemImage: "magnifyingglass")
                 }
                 .tag(IOSTab.search)
 
-                NavigationStack {
+                NavigationView {
                     IOSLibraryView(showLogin: $showLogin)
                         .appDestinations()
                 }
+                .navigationViewStyle(StackNavigationViewStyle())
                 .tabItem {
                     Label("我的", systemImage: "person.crop.circle.fill")
                 }
@@ -131,8 +136,8 @@ enum IOSTab: Hashable {
 // MARK: - Mini player bar for iOS
 
 struct IOSMiniPlayerBar: View {
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
 
     var body: some View {
         Button {
@@ -196,7 +201,7 @@ struct IOSMiniPlayerBar: View {
 
 struct IOSLibraryView: View {
     @Binding var showLogin: Bool
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var account: AccountStore
     @State private var showSettings = false
     @State private var showNewPlaylist = false
     @State private var newPlaylistName = ""
@@ -252,21 +257,21 @@ struct IOSLibraryView: View {
             if account.hasAuthCookie {
                 Section("我的音乐") {
                     if let liked = account.likedSongsPlaylist {
-                        NavigationLink(value: Destination.playlist(liked.id)) {
+                        DestinationLink(value: Destination.playlist(liked.id)) {
                             Label("我喜欢的音乐", systemImage: "heart.fill")
                                 .foregroundStyle(Theme.accent)
                         }
                     }
-                    NavigationLink(value: Destination.daily) {
+                    DestinationLink(value: Destination.daily) {
                         Label("每日推荐", systemImage: "calendar")
                     }
-                    NavigationLink(value: Destination.recents) {
+                    DestinationLink(value: Destination.recents) {
                         Label("最近播放", systemImage: "clock.fill")
                     }
-                    NavigationLink(value: Destination.collections) {
+                    DestinationLink(value: Destination.collections) {
                         Label("我的收藏", systemImage: "star.fill")
                     }
-                    NavigationLink(value: Destination.cloud) {
+                    DestinationLink(value: Destination.cloud) {
                         Label("音乐云盘", systemImage: "icloud.fill")
                     }
                 }
@@ -274,7 +279,7 @@ struct IOSLibraryView: View {
                 if !account.createdPlaylists.isEmpty {
                     Section {
                         ForEach(account.createdPlaylists) { playlist in
-                            NavigationLink(value: Destination.playlist(playlist.id)) {
+                            DestinationLink(value: Destination.playlist(playlist.id)) {
                                 HStack(spacing: 10) {
                                     CachedAsyncImage(url: playlist.coverURL?.resizedImageURL(80), animated: false)
                                         .frame(width: 32, height: 32)
@@ -307,7 +312,7 @@ struct IOSLibraryView: View {
                 if !account.subscribedPlaylists.isEmpty {
                     Section("收藏的歌单") {
                         ForEach(account.subscribedPlaylists) { playlist in
-                            NavigationLink(value: Destination.playlist(playlist.id)) {
+                            DestinationLink(value: Destination.playlist(playlist.id)) {
                                 HStack(spacing: 10) {
                                     CachedAsyncImage(url: playlist.coverURL?.resizedImageURL(80), animated: false)
                                         .frame(width: 32, height: 32)
@@ -329,7 +334,7 @@ struct IOSLibraryView: View {
         }
         .navigationTitle("我的")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showSettings = true
                 } label: {
@@ -338,17 +343,18 @@ struct IOSLibraryView: View {
             }
         }
         .sheet(isPresented: $showSettings) {
-            NavigationStack {
+            NavigationView {
                 SettingsView()
                     .navigationTitle("设置")
                     .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
+                        ToolbarItem(placement: .navigationBarTrailing) {
                             Button("完成") {
                                 showSettings = false
                             }
                         }
                     }
             }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
         .alert("新建歌单", isPresented: $showNewPlaylist) {
             TextField("歌单名称", text: $newPlaylistName)

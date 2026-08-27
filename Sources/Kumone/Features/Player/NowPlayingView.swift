@@ -3,9 +3,9 @@ import SwiftUI
 /// Immersive full-window now-playing page: artwork-tinted gradient backdrop,
 /// large artwork on the left, big synced lyrics on the right.
 struct NowPlayingView: View {
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
-    @Environment(SettingsManager.self) private var settings
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var settings: SettingsManager
 
     @State private var artworkImage: PlatformImage?
     @State private var colors: ArtworkColors = .fallback
@@ -263,7 +263,6 @@ struct NowPlayingView: View {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 21, weight: .bold))
                         .foregroundStyle(.black.opacity(0.85))
-                        .contentTransition(.symbolEffect(.replace))
                 }
             }
             .buttonStyle(.pressable)
@@ -331,8 +330,8 @@ struct NowPlayingView: View {
                         startPoint: .top, endPoint: .bottom
                     )
                 )
-                .onChange(of: player.progress) {
-                    let index = lyrics.activeIndex(at: player.progress + 0.2)
+                .onChange(of: player.progress) { progress in
+                    let index = lyrics.activeIndex(at: progress + 0.2)
                     guard index != activeIndex else { return }
                     activeIndex = index
                     guard !isUserScrolling, let index else { return }
@@ -340,7 +339,7 @@ struct NowPlayingView: View {
                         proxy.scrollTo(index, anchor: .center)
                     }
                 }
-                .onChange(of: player.currentTrack?.id) {
+                .onChange(of: player.currentTrack?.id) { _ in
                     activeIndex = nil
                 }
                 .simultaneousGesture(
@@ -348,7 +347,7 @@ struct NowPlayingView: View {
                         isUserScrolling = true
                         resumeTask?.cancel()
                         resumeTask = Task {
-                            try? await Task.sleep(for: .seconds(3))
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
                             guard !Task.isCancelled else { return }
                             isUserScrolling = false
                         }
@@ -401,7 +400,7 @@ struct NowPlayingView: View {
 // MARK: - Scrubber (white-on-dark variant)
 
 struct NowPlayingScrubber: View {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
 
     @State private var isHovering = false
     @State private var isDragging = false
@@ -476,7 +475,7 @@ struct NowPlayingScrubber: View {
 struct MiniLyricsView: View {
     let onOpen: () -> Void
 
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
 
     private var lines: (previous: LyricLine?, current: LyricLine?, next: LyricLine?) {
         guard let lyrics = player.lyrics, !lyrics.isEmpty else { return (nil, nil, nil) }

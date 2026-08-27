@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 enum AudioQuality: String, CaseIterable, Identifiable {
     case standard
@@ -53,8 +54,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-@Observable
-final class SettingsManager {
+final class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
 
     private enum Keys {
@@ -67,25 +67,25 @@ final class SettingsManager {
         static let desktopLyrics = "settings.showDesktopLyrics"
     }
 
-    var audioQuality: AudioQuality {
+    @Published var audioQuality: AudioQuality {
         didSet { UserDefaults.standard.set(audioQuality.rawValue, forKey: Keys.quality) }
     }
 
-    var appearance: AppAppearance {
+    @Published var appearance: AppAppearance {
         didSet { UserDefaults.standard.set(appearance.rawValue, forKey: Keys.appearance) }
     }
 
-    var showLyricsTranslation: Bool {
+    @Published var showLyricsTranslation: Bool {
         didSet { UserDefaults.standard.set(showLyricsTranslation, forKey: Keys.showTranslation) }
     }
 
     /// Resolve gray tracks from third-party sources (UnblockNeteaseMusic-style).
-    var enableUnblock: Bool {
+    @Published var enableUnblock: Bool {
         didSet { UserDefaults.standard.set(enableUnblock, forKey: Keys.unblock) }
     }
 
     /// Floating desktop lyrics window (LyricsX-style).
-    var showDesktopLyrics: Bool {
+    @Published var showDesktopLyrics: Bool {
         didSet { UserDefaults.standard.set(showDesktopLyrics, forKey: Keys.desktopLyrics) }
     }
 

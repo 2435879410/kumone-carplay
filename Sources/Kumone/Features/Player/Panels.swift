@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Lyrics panel
 
 struct LyricsPanel: View {
-    @Environment(PlayerService.self) private var player
-    @Environment(SettingsManager.self) private var settings
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var settings: SettingsManager
 
     @State private var activeIndex: Int?
     @State private var isUserScrolling = false
@@ -68,8 +68,8 @@ struct LyricsPanel: View {
                     }
                     .padding(.horizontal, 20)
                 }
-                .onChange(of: player.progress) {
-                    let index = lyrics.activeIndex(at: player.progress + 0.2)
+                .onChange(of: player.progress) { progress in
+                    let index = lyrics.activeIndex(at: progress + 0.2)
                     guard index != activeIndex else { return }
                     activeIndex = index
                     guard !isUserScrolling, let index else { return }
@@ -77,7 +77,7 @@ struct LyricsPanel: View {
                         proxy.scrollTo(index, anchor: .center)
                     }
                 }
-                .onChange(of: player.currentTrack?.id) {
+                .onChange(of: player.currentTrack?.id) { _ in
                     activeIndex = nil
                     proxy.scrollTo(0, anchor: .top)
                 }
@@ -86,7 +86,7 @@ struct LyricsPanel: View {
                         isUserScrolling = true
                         resumeTask?.cancel()
                         resumeTask = Task {
-                            try? await Task.sleep(for: .seconds(3))
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
                             guard !Task.isCancelled else { return }
                             isUserScrolling = false
                         }
@@ -136,7 +136,7 @@ struct LyricsPanel: View {
 // MARK: - Queue panel
 
 struct QueuePanel: View {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
 
     var body: some View {
         VStack(spacing: 0) {
@@ -210,7 +210,7 @@ private struct QueueRow: View {
     let track: Track
     let isCurrent: Bool
 
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
     @State private var isHovering = false
 
     var body: some View {
