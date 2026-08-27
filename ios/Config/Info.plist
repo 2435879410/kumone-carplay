@@ -15,6 +15,10 @@
             <key>CPTemplateApplicationSceneSessionRoleApplication</key>
             <array>
                 <dict>
+                    <key>UISceneClassName</key>
+                    <string>CPTemplateApplicationScene</string>
+                    <key>UISceneConfigurationName</key>
+                    <string>KumoneCarPlaySceneConfiguration</string>
                     <key>UISceneDelegateClassName</key>
                     <string>KumoneCore.KumoneCarPlaySceneDelegate</string>
                 </dict>

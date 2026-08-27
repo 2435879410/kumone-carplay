@@ -19,11 +19,15 @@ public final class KumoneCarPlaySceneDelegate: UIResponder, CPTemplateApplicatio
         didConnect interfaceController: CPInterfaceController
     ) {
         CarPlayBridge.interfaceController = interfaceController
+
+        // CarPlay 要求连接后立即提供根模板。登录态刷新可能涉及网络请求，
+        // 不能在这里等待，否则车机在请求完成前只会显示空白背景。
+        interfaceController.setRootTemplate(
+            KumoneCarPlayTemplates.root(), animated: false, completion: nil
+        )
+
         Task { @MainActor in
             await AccountStore.shared.bootstrap()
-            interfaceController.setRootTemplate(
-                KumoneCarPlayTemplates.root(), animated: false, completion: nil
-            )
         }
     }
 
@@ -86,7 +90,15 @@ enum KumoneCarPlayTemplates {
     // MARK: Root
 
     static func root() -> CPTemplate {
-        CPTabBarTemplate(templates: [home(), library()])
+        let homeTemplate = home()
+        homeTemplate.tabTitle = String(localized: "推荐")
+        homeTemplate.tabImage = UIImage(systemName: "house.fill")
+
+        let libraryTemplate = library()
+        libraryTemplate.tabTitle = String(localized: "我的音乐")
+        libraryTemplate.tabImage = UIImage(systemName: "music.note.list")
+
+        return CPTabBarTemplate(templates: [homeTemplate, libraryTemplate])
     }
 
     // MARK: Home tab

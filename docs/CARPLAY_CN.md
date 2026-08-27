@@ -26,7 +26,7 @@
 
 ### 方式 A：GitHub Actions（推荐，本仓库默认）
 
-推送到 `main` 或 `ios15.3.1-carplay` 分支（或手动 `workflow_dispatch`）会自动在 macos-26 runner 上构建，并用 ldid 注入两项 CarPlay 权限。产物为可直接交给 TrollStore 的 `Kumone-iOS-0.3.2-ios15-carplay.ipa`。
+推送到 `main` 或 `ios15.3.1-carplay` 分支（或手动 `workflow_dispatch`）会自动在 macos-26 runner 上构建，并用 ldid 注入两项 CarPlay 权限。产物为可直接交给 TrollStore 的 `Kumone-iOS-0.3.3-ios15-carplay.ipa`。
 
 ### 方式 B：本机构建（需 Xcode 26+）
 
