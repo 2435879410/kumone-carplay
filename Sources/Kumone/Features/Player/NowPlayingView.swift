@@ -132,15 +132,22 @@ struct NowPlayingView: View {
     }
 
     private func compactLayout(size: CGSize) -> some View {
-        let artworkDim = min(size.width - 64, size.height * 0.38, 300)
-        return VStack(spacing: 20) {
-            Spacer().frame(height: 44)
+        // Keep the complete transport area visible on shorter iPhones. The old
+        // layout sized artwork at 38% of the screen and put seven controls in a
+        // single ~430pt row, which clipped both sides on 375/390pt displays.
+        let isShort = size.height < 700
+        let verticalSpacing: CGFloat = isShort ? 12 : 18
+        let artworkFraction: CGFloat = isShort ? 0.31 : 0.35
+        let artworkDim = max(160, min(size.width - 64, size.height * artworkFraction, 300))
+
+        return VStack(spacing: verticalSpacing) {
+            Spacer().frame(height: isShort ? 36 : 44)
             if showLyricsOnMobile {
                 lyricsColumn
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .transition(.opacity)
             } else {
-                VStack(spacing: 20) {
+                VStack(spacing: verticalSpacing) {
                     artworkView(size: artworkDim)
                     trackMetaView
                     MiniLyricsView {
@@ -152,14 +159,16 @@ struct NowPlayingView: View {
                 }
                 .transition(.opacity)
             }
-            VStack(spacing: 12) {
+            VStack(spacing: isShort ? 8 : 10) {
                 NowPlayingScrubber()
-                    .padding(.horizontal, 24)
-                controls
+                    .padding(.horizontal, 16)
+                compactControls
             }
-            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.bottom, isShort ? 8 : 16)
         }
         .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     // MARK: - Views
@@ -226,15 +235,7 @@ struct NowPlayingView: View {
 
     private var controls: some View {
         HStack(spacing: 22) {
-            if let track = player.currentTrack {
-                let liked = account.isLiked(track.id)
-                circleButton(
-                    icon: liked ? "heart.fill" : "heart",
-                    size: 15, tint: liked ? Theme.accent : nil
-                ) {
-                    Task { await account.toggleLike(trackID: track.id) }
-                }
-            }
+            favoriteButton
 
             if player.isFMMode {
                 circleButton(icon: "trash", size: 14) {
@@ -252,20 +253,7 @@ struct NowPlayingView: View {
                 }
             }
 
-            Button {
-                player.togglePlayPause()
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 58, height: 58)
-                        .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 21, weight: .bold))
-                        .foregroundStyle(.black.opacity(0.85))
-                }
-            }
-            .buttonStyle(.pressable)
+            playPauseButton
 
             circleButton(icon: "forward.fill", size: 16) {
                 player.next()
@@ -288,6 +276,90 @@ struct NowPlayingView: View {
                 }
             }
         }
+    }
+
+    /// Phone controls use two centered rows so every action remains visible on
+    /// narrow iPhones. The primary transport row stays in the familiar center,
+    /// while favorite and AirPlay sit directly below it.
+    private var compactControls: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 16) {
+                if player.isFMMode {
+                    circleButton(icon: "trash", size: 14) {
+                        player.fmTrash()
+                    }
+                } else {
+                    circleButton(
+                        icon: "shuffle", size: 14,
+                        tint: player.shuffleEnabled ? Theme.accent : nil
+                    ) {
+                        player.toggleShuffle()
+                    }
+                    circleButton(icon: "backward.fill", size: 16) {
+                        player.previous()
+                    }
+                }
+
+                playPauseButton
+
+                circleButton(icon: "forward.fill", size: 16) {
+                    player.next()
+                }
+
+                if player.isFMMode {
+                    Image(systemName: "wave.3.right.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(width: 40, height: 40)
+                } else {
+                    circleButton(
+                        icon: player.repeatMode == .one ? "repeat.1" : "repeat",
+                        size: 14,
+                        tint: player.repeatMode != .off ? Theme.accent : nil
+                    ) {
+                        player.cycleRepeatMode()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            HStack(spacing: 20) {
+                favoriteButton
+                RoutePickerButton(diameter: 40, glyphSize: 15)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var favoriteButton: some View {
+        if let track = player.currentTrack {
+            let liked = account.isLiked(track.id)
+            circleButton(
+                icon: liked ? "heart.fill" : "heart",
+                size: 15, tint: liked ? Theme.accent : nil
+            ) {
+                Task { await account.toggleLike(trackID: track.id) }
+            }
+        }
+    }
+
+    private var playPauseButton: some View {
+        Button {
+            player.togglePlayPause()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(.black.opacity(0.85))
+            }
+        }
+        .buttonStyle(.pressable)
     }
 
     private func circleButton(icon: String, size: CGFloat,
