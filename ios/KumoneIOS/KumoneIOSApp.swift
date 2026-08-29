@@ -41,6 +41,12 @@ final class KumoneIOSCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSce
 
 @main
 struct KumoneIOSApp: App {
+    init() {
+        // Register the iOS 15 playable-content data source before CarPlay asks
+        // the process for its root browse items.
+        KumoneLegacyCarPlay.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             IOSMainWindow()
