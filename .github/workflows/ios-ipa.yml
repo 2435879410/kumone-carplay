@@ -10,7 +10,7 @@ permissions:
 
 env:
   APP_NAME: Kumone
-  VERSION: 0.3.4-ios15-carplay
+  VERSION: 0.3.5-ios15-carplay
 
 jobs:
   build-ipa:
@@ -39,7 +39,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$APP/Info.plist"
           SCENE_PATH=":UIApplicationSceneManifest:UISceneConfigurations:CPTemplateApplicationSceneSessionRoleApplication:0"
           test "$(/usr/libexec/PlistBuddy -c "Print $SCENE_PATH:UISceneClassName" "$APP/Info.plist")" = "CPTemplateApplicationScene"
-          test "$(/usr/libexec/PlistBuddy -c "Print $SCENE_PATH:UISceneDelegateClassName" "$APP/Info.plist")" = "KumoneCore.KumoneCarPlaySceneDelegate"
+          test "$(/usr/libexec/PlistBuddy -c "Print $SCENE_PATH:UISceneDelegateClassName" "$APP/Info.plist")" = "KumoneIOS.KumoneIOSCarPlaySceneDelegate"
+          strings "$BIN" | grep -q 'KumoneIOSCarPlaySceneDelegate'
+          strings "$BIN" | grep -q 'templateApplicationScene:didConnectInterfaceController:'
+          strings "$BIN" | grep -q 'templateApplicationScene:didConnectInterfaceController:toWindow:'
 
           mkdir -p payload/Payload
           cp -R "$APP" payload/Payload/
@@ -65,7 +68,7 @@ jobs:
         with:
           name: Kumone-iOS-15.3.1-CarPlay-TrollStore
           path: |
-            Kumone-iOS-0.3.4-ios15-carplay.ipa
+            Kumone-iOS-0.3.5-ios15-carplay.ipa
             CarPlay.entitlements
             embedded-entitlements.plist
           if-no-files-found: error

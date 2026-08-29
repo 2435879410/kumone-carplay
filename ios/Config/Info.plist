@@ -19,8 +19,8 @@
                     <string>CPTemplateApplicationScene</string>
                     <key>UISceneConfigurationName</key>
                     <string>KumoneCarPlaySceneConfiguration</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>KumoneCore.KumoneCarPlaySceneDelegate</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).KumoneIOSCarPlaySceneDelegate</string>
                 </dict>
             </array>
         </dict>
