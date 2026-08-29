@@ -55,7 +55,7 @@ private final class LegacyCarPlayManager: NSObject,
         }
     }
 
-    private func start() {
+    fileprivate func start() {
         let manager = MPPlayableContentManager.shared()
         manager.dataSource = self
         manager.delegate = self
