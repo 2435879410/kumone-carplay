@@ -7,8 +7,8 @@ struct RecentsView: View {
     @State private var week = false
     @State private var isLoading = true
 
-    @Environment(AccountStore.self) private var account
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var player: PlayerService
 
     var body: some View {
         ScrollView {
@@ -92,7 +92,7 @@ struct CloudView: View {
     @State private var sizeInfo: String?
     @State private var isLoading = true
 
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
 
     var body: some View {
         ScrollView {

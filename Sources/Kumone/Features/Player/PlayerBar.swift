@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PlayerBar: View {
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
 
     var body: some View {
         GeometryReader { proxy in
@@ -139,7 +139,6 @@ struct PlayerBar: View {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 12.5, weight: .bold))
                         .foregroundStyle(.white)
-                        .contentTransition(.symbolEffect(.replace))
                 }
             }
         }
@@ -248,7 +247,7 @@ struct LikeButton: View {
     let trackID: Int
     var size: CGFloat = 13
 
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var account: AccountStore
 
     var body: some View {
         let liked = account.isLiked(trackID)
@@ -265,7 +264,7 @@ struct LikeButton: View {
 // MARK: - Scrubber
 
 struct ScrubberLane: View {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isHovering = false
@@ -343,7 +342,7 @@ struct ScrubberLane: View {
 // MARK: - Volume
 
 struct VolumeControl: View {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
     @State private var showPopover = false
 
     var body: some View {
@@ -369,11 +368,10 @@ struct VolumeControl: View {
 }
 
 struct VolumeSlider: View {
-    @Environment(PlayerService.self) private var player
+    @EnvironmentObject private var player: PlayerService
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        @Bindable var player = player
         GeometryReader { geo in
             let height = geo.size.height
             ZStack(alignment: .bottom) {

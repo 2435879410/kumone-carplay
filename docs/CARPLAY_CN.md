@@ -17,7 +17,7 @@
 | --- | --- |
 | `Sources/Kumone/Features/CarPlay/KumoneCarPlay.swift` | 新增：CarPlay 场景代理 `KumoneCarPlaySceneDelegate` + 模板树构建（`#if os(iOS)`，不影响 macOS） |
 | `ios/Config/Info.plist` | 注册 `CPTemplateApplicationSceneSessionRoleApplication` 场景，delegate 指向 `KumoneCore.KumoneCarPlaySceneDelegate` |
-| `ios/Config/KumoneIOS.entitlements` | 新增 `com.apple.developer.playable-content`（CarPlay 音频应用权限） |
+| `ios/Config/KumoneIOS.entitlements` | 新增 `com.apple.developer.carplay-audio`，并保留旧式 `playable-content` |
 | `Sources/Kumone/Core/Player/NowPlayingManager.swift` | 新增随机/循环遥控命令（惠及 CarPlay 正在播放屏与锁屏） |
 | `.github/workflows/ios-ipa.yml` | 新增 CI：推送到 main 即构建无签名 IPA |
 | `CarPlay.entitlements` | 独立的权限文件，供签名工具注入 |
@@ -26,7 +26,7 @@
 
 ### 方式 A：GitHub Actions（推荐，本仓库默认）
 
-推送到 `main` 分支（或手动 `workflow_dispatch`）会自动在 macos-26 runner 上构建，产物为 **无签名** 的 `Kumone-iOS-0.3.0-carplay-unsigned.ipa`。构建完成后在 Actions 页面的 Artifacts 中下载。
+推送到 `main` 或 `ios15.3.1-carplay` 分支（或手动 `workflow_dispatch`）会自动在 macos-26 runner 上构建，并用 ldid 注入两项 CarPlay 权限。产物为可直接交给 TrollStore 的 `Kumone-iOS-0.3.3-ios15-carplay.ipa`。
 
 ### 方式 B：本机构建（需 Xcode 26+）
 
@@ -44,13 +44,13 @@ zip -qry Kumone-iOS-0.3.0-carplay-unsigned.ipa Payload
 
 ## 二、签名安装（关键）
 
-CarPlay 音频应用必须携带 **`com.apple.developer.playable-content`** 权限，否则 iOS 不会让应用出现在车机 CarPlay 主屏上。该权限需要 Apple 审批，普通免费 Apple ID 的个人签名（AltStore / SideStore / Sideloadly）**无法**携带它——那样装出来的 App 手机上能正常用，但车机上不显示。
+iOS 14 及以上使用 CarPlay framework 的音频应用必须携带 **`com.apple.developer.carplay-audio`**。`com.apple.developer.playable-content` 是旧式 MediaPlayer CarPlay 权限，本项目同时保留它作为兼容项。正式签名时这些能力需要 Apple 审批；普通免费 Apple ID 的个人签名（AltStore / SideStore / Sideloadly）通常无法携带，因此手机端能打开但车机可能不显示。
 
 请在支持自定义 entitlements 的工具上签名：
 
 ### TrollStore（巨魔，推荐）
 
-仓库根目录的 `CarPlay.entitlements` 已包含所需权限。用 Mac 上的 `ldid` 先给二进制预签名，再安装：
+仓库根目录的 `CarPlay.entitlements` 已同时包含现代音频权限和旧式兼容权限。CI 产物已经完成 ldid 预签名，可直接安装；以下命令只用于手动处理无签名包：
 
 ```bash
 brew install ldid   # 一次性
@@ -87,7 +87,7 @@ ESign 导入 IPA 后，在「签名」设置里导入 `CarPlay.entitlements` 文
 
 ## 常见问题
 
-- **车机上找不到 Kumone？** 九成是签名时没有注入 `com.apple.developer.playable-content`，请按第二节重新签名安装；另外确认车机 CarPlay 设置里允许显示该应用。
+- **车机上找不到 Kumone？** 先确认签名中存在 `com.apple.developer.carplay-audio = true`，再确认车机 CarPlay 设置里允许显示该应用。
 - **怎么判断签名后的 IPA 有没有 CarPlay 权限？** 用 `Scripts/check-carplay-entitlements.sh <你的IPA>`：它会解包并打印二进制里实际嵌入的 entitlements，输出 ✅/❌ 一目了然（Apple 签名的还会顺带检查 embedded.mobileprovision 描述文件）。注意：权限不在“证书”上——AltStore 等个人证书的权限来自描述文件（免费账号不含 CarPlay 能力），TrollStore/ESign 的权限来自注入的 entitlements。
 - **CarPlay 里点歌没声音？** 手机端确认 App 已登录且能正常播放；CarPlay 与手机共用同一个播放引擎。
 - **覆盖安装会不会丢登录？** 本 IPA 与原版 IPA 使用相同 bundle id（`sb.moe.kumone`），用同一工具覆盖安装会保留登录状态与设置。

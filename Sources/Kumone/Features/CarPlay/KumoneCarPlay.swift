@@ -18,20 +18,37 @@ public final class KumoneCarPlaySceneDelegate: UIResponder, CPTemplateApplicatio
         _ templateApplicationScene: CPTemplateApplicationScene,
         didConnect interfaceController: CPInterfaceController
     ) {
-        CarPlayBridge.interfaceController = interfaceController
-        Task { @MainActor in
-            await AccountStore.shared.bootstrap()
-            interfaceController.setRootTemplate(
-                KumoneCarPlayTemplates.root(), animated: false, completion: nil
-            )
-        }
+        KumoneCarPlayBootstrap.connect(interfaceController)
     }
 
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
         didDisconnect interfaceController: CPInterfaceController
     ) {
-        CarPlayBridge.interfaceController = nil
+        KumoneCarPlayBootstrap.disconnect(interfaceController)
+    }
+}
+
+/// Public bridge used by the iOS application target's CarPlay scene delegate.
+/// The first root is intentionally a single CPListTemplate: it is supported by
+/// every template-based audio CarPlay implementation on iOS 15 and avoids a
+/// tab-bar construction failure leaving the scene with a blank canvas.
+public enum KumoneCarPlayBootstrap {
+    public static func connect(_ interfaceController: CPInterfaceController) {
+        CarPlayBridge.interfaceController = interfaceController
+        interfaceController.setRootTemplate(
+            KumoneCarPlayTemplates.rootList(), animated: false, completion: nil
+        )
+
+        Task { @MainActor in
+            await AccountStore.shared.bootstrap()
+        }
+    }
+
+    public static func disconnect(_ interfaceController: CPInterfaceController) {
+        if CarPlayBridge.interfaceController === interfaceController {
+            CarPlayBridge.interfaceController = nil
+        }
     }
 }
 
@@ -86,7 +103,32 @@ enum KumoneCarPlayTemplates {
     // MARK: Root
 
     static func root() -> CPTemplate {
-        CPTabBarTemplate(templates: [home(), library()])
+        let homeTemplate = home()
+        homeTemplate.tabTitle = String(localized: "推荐")
+        homeTemplate.tabImage = UIImage(systemName: "house.fill")
+
+        let libraryTemplate = library()
+        libraryTemplate.tabTitle = String(localized: "我的音乐")
+        libraryTemplate.tabImage = UIImage(systemName: "music.note.list")
+
+        return CPTabBarTemplate(templates: [homeTemplate, libraryTemplate])
+    }
+
+    /// Conservative iOS 15 root. Library remains one tap away while avoiding
+    /// CPTabBarTemplate as the very first template shown by older head units.
+    static func rootList() -> CPListTemplate {
+        let holder = CarPlayListState(title: String(localized: "Kumone"), sections: [
+            CPListSection(
+                items: [dailyItem(), fmItem(), recentItem(), libraryRootItem()],
+                header: String(localized: "为你推荐"), sectionIndexTitle: nil
+            ),
+            CPListSection(items: [loadingItem()], header: String(localized: "推荐歌单"), sectionIndexTitle: nil),
+            CPListSection(items: [loadingItem()], header: String(localized: "排行榜"), sectionIndexTitle: nil),
+        ])
+
+        reloadPersonalized(into: holder, at: 1)
+        reloadToplists(into: holder, at: 2)
+        return holder.template
     }
 
     // MARK: Home tab
@@ -375,6 +417,24 @@ enum KumoneCarPlayTemplates {
             MainActor.assumeIsolated {
                 CarPlayBridge.interfaceController?.pushTemplate(
                     recentList(), animated: true, completion: nil
+                )
+            }
+            completion()
+        }
+        return item
+    }
+
+    private static func libraryRootItem() -> CPListItem {
+        let item = CPListItem(
+            text: String(localized: "我的音乐"),
+            detailText: String(localized: "喜欢的音乐与歌单"),
+            image: UIImage(systemName: "music.note.list"),
+            accessoryImage: nil, accessoryType: .disclosureIndicator
+        )
+        item.handler = { _, completion in
+            MainActor.assumeIsolated {
+                CarPlayBridge.interfaceController?.pushTemplate(
+                    library(), animated: true, completion: nil
                 )
             }
             completion()

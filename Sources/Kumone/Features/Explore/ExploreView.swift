@@ -1,8 +1,8 @@
 import SwiftUI
+import Combine
 
 @MainActor
-@Observable
-final class ExploreViewModel {
+final class ExploreViewModel: ObservableObject {
     /// Shared so category selection and loaded pages survive sidebar switches.
     static let shared = ExploreViewModel()
 
@@ -13,11 +13,11 @@ final class ExploreViewModel {
         "学习", "工作", "运动", "驾车", "夜晚",
     ]
 
-    var selectedCategory = "全部"
-    var playlists: [PlaylistSummary] = []
-    var toplists: [ToplistItem] = []
-    var isLoading = false
-    var hasMore = true
+    @Published var selectedCategory = "全部"
+    @Published var playlists: [PlaylistSummary] = []
+    @Published var toplists: [ToplistItem] = []
+    @Published var isLoading = false
+    @Published var hasMore = true
     private var offset = 0
     private var highQualityBefore = 0
     private var loadTask: Task<Void, Never>?
@@ -75,8 +75,8 @@ final class ExploreViewModel {
 }
 
 struct ExploreView: View {
-    @State private var model = ExploreViewModel.shared
-    @Environment(PlayerService.self) private var player
+    @StateObject private var model = ExploreViewModel.shared
+    @EnvironmentObject private var player: PlayerService
 
     var body: some View {
         ScrollView {
@@ -90,7 +90,7 @@ struct ExploreView: View {
                 } else {
                     CardGrid {
                         ForEach(Array(model.playlists.enumerated()), id: \.element.id) { index, playlist in
-                            NavigationLink(value: Destination.playlist(playlist.id)) {
+                            DestinationLink(value: Destination.playlist(playlist.id)) {
                                 CoverCardBody(
                                     coverURL: playlist.coverURL?.resizedImageURL(384),
                                     title: playlist.name,
@@ -174,7 +174,7 @@ struct ToplistGrid: View {
             alignment: .leading, spacing: 20
         ) {
             ForEach(toplists) { toplist in
-                NavigationLink(value: Destination.playlist(toplist.id)) {
+                DestinationLink(value: Destination.playlist(toplist.id)) {
                     HStack(spacing: 14) {
                         CachedAsyncImage(url: toplist.coverImgUrl?.resizedImageURL(256))
                             .frame(width: 110, height: 110)

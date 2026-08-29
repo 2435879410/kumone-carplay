@@ -11,8 +11,8 @@ struct AlbumDetailView: View {
     @State private var errorMessage: String?
     @State private var showFullDescription = false
 
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isCompact: Bool {
@@ -52,7 +52,7 @@ struct AlbumDetailView: View {
                             HStack(spacing: 16) {
                                 Spacer().frame(width: (isCompact ? 16 : Theme.Layout.contentInset) - 16)
                                 ForEach(otherAlbums) { item in
-                                    NavigationLink(value: Destination.album(item.id)) {
+                                    DestinationLink(value: Destination.album(item.id)) {
                                         CoverCardBody(
                                             coverURL: item.picUrl?.resizedImageURL(384),
                                             title: item.name,
@@ -124,7 +124,7 @@ struct AlbumDetailView: View {
                         .lineLimit(3)
 
                     if let artist = album.artist {
-                        NavigationLink(value: Destination.artist(artist.id)) {
+                        DestinationLink(value: Destination.artist(artist.id)) {
                             Text(artist.name)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(Theme.accent)
@@ -155,7 +155,7 @@ struct AlbumDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .sheet(isPresented: $showFullDescription) {
-                    NavigationStack {
+                    NavigationView {
                         ScrollView {
                             Text(description)
                                 .font(.system(size: 14))
@@ -171,6 +171,7 @@ struct AlbumDetailView: View {
                             }
                         }
                     }
+                    .navigationViewStyle(StackNavigationViewStyle())
                 }
             }
 
@@ -227,7 +228,7 @@ struct AlbumDetailView: View {
                     .lineLimit(2)
 
                 if let artist = album.artist {
-                    NavigationLink(value: Destination.artist(artist.id)) {
+                    DestinationLink(value: Destination.artist(artist.id)) {
                         Text(artist.name)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Theme.accent)

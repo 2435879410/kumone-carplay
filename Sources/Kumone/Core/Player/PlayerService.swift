@@ -1,6 +1,6 @@
 import AVFoundation
 import Foundation
-import Observation
+import Combine
 
 enum RepeatMode: String, CaseIterable {
     case off, all, one
@@ -38,42 +38,41 @@ enum RightPanel {
 /// The playback engine: queue, shuffle/repeat, personal FM, URL resolution,
 /// lyrics, scrobbling. Modeled on YesPlayMusic's Player class, backed by AVPlayer.
 @MainActor
-@Observable
-final class PlayerService {
+final class PlayerService: ObservableObject {
     static let shared = PlayerService()
 
     // MARK: - Observable state
 
-    private(set) var queue: [Track] = []
-    private(set) var shuffledQueue: [Track] = []
-    private(set) var playNextList: [Track] = []
-    private(set) var currentIndex = -1
-    private(set) var currentTrack: Track?
-    private(set) var source: PlaySource = .none
-    private(set) var isPlaying = false
-    private(set) var isBuffering = false
-    private(set) var duration: TimeInterval = 0
-    private(set) var servedQuality: String?
-    private(set) var unblockSource: String?
-    private(set) var isTrial = false
-    var progress: TimeInterval = 0
-    var repeatMode: RepeatMode = .off {
+    @Published private(set) var queue: [Track] = []
+    @Published private(set) var shuffledQueue: [Track] = []
+    @Published private(set) var playNextList: [Track] = []
+    @Published private(set) var currentIndex = -1
+    @Published private(set) var currentTrack: Track?
+    @Published private(set) var source: PlaySource = .none
+    @Published private(set) var isPlaying = false
+    @Published private(set) var isBuffering = false
+    @Published private(set) var duration: TimeInterval = 0
+    @Published private(set) var servedQuality: String?
+    @Published private(set) var unblockSource: String?
+    @Published private(set) var isTrial = false
+    @Published var progress: TimeInterval = 0
+    @Published var repeatMode: RepeatMode = .off {
         didSet { UserDefaults.standard.set(repeatMode.rawValue, forKey: "player.repeat") }
     }
 
-    private(set) var shuffleEnabled = false
-    var volume: Float = 1 {
+    @Published private(set) var shuffleEnabled = false
+    @Published var volume: Float = 1 {
         didSet {
             engine.volume = volume
             UserDefaults.standard.set(volume, forKey: "player.volume")
         }
     }
 
-    private(set) var isFMMode = false
-    private(set) var fmUpcoming: [Track] = []
-    private(set) var lyrics: ParsedLyrics?
-    var activePanel: RightPanel?
-    var showNowPlaying = false
+    @Published private(set) var isFMMode = false
+    @Published private(set) var fmUpcoming: [Track] = []
+    @Published private(set) var lyrics: ParsedLyrics?
+    @Published var activePanel: RightPanel?
+    @Published var showNowPlaying = false
 
     /// The list the player is walking through (shuffled or ordered).
     var activeQueue: [Track] { shuffleEnabled ? shuffledQueue : queue }
@@ -159,7 +158,7 @@ final class PlayerService {
     }
 
     /// Set while the user drags the seek bar so the time observer doesn't fight the thumb.
-    var isScrubbing = false
+    @Published var isScrubbing = false
 
     #if os(iOS)
     private var wasPlayingBeforeInterruption = false
@@ -360,7 +359,7 @@ final class PlayerService {
                     ToastCenter.shared.show(String(localized: "获取私人漫游数据失败"))
                     return
                 }
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
         }
         guard !fmUpcoming.isEmpty else { return }

@@ -5,8 +5,8 @@ struct DailySongsView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
 
     var body: some View {
         ScrollView {

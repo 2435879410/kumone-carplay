@@ -19,7 +19,8 @@ CODE_SIGN_STYLE = Automatic
 // ==========================================
 // Platform Configuration
 // ==========================================
-IPHONEOS_DEPLOYMENT_TARGET = 17.0
+// Keep this at 15.0 so the resulting binary runs on iOS 15.3.1 and later.
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
 
 // (1 == iPhone, 2 == iPad)
 TARGETED_DEVICE_FAMILY = 1,2 

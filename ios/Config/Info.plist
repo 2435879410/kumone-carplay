@@ -6,21 +6,6 @@
     <array>
         <string>audio</string>
     </array>
-    <key>UIApplicationSceneManifest</key>
-    <dict>
-        <key>UIApplicationSupportsMultipleScenes</key>
-        <true/>
-        <key>UISceneConfigurations</key>
-        <dict>
-            <key>CPTemplateApplicationSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneDelegateClassName</key>
-                    <string>KumoneCore.KumoneCarPlaySceneDelegate</string>
-                </dict>
-            </array>
-        </dict>
-    </dict>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>

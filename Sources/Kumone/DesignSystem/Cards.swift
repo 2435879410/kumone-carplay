@@ -104,7 +104,6 @@ struct Shelf<Content: View>: View {
                 }
                 .padding(.vertical, 6)
             }
-            .scrollClipDisabled() // hover scale must not be clipped (#11)
         }
     }
 }
@@ -133,15 +132,22 @@ struct ErrorStateView: View {
     let retry: () -> Void
 
     var body: some View {
-        ContentUnavailableView {
-            Label("加载失败", systemImage: "wifi.exclamationmark")
-        } description: {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 40))
+                .foregroundStyle(.tertiary)
+            Text("加载失败")
+                .font(.headline)
             Text(message)
-        } actions: {
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
             Button("重试", action: retry)
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.accent)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 }
 

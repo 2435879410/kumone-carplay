@@ -1,16 +1,16 @@
 import SwiftUI
+import Combine
 
 @MainActor
-@Observable
-final class PlaylistDetailViewModel {
+final class PlaylistDetailViewModel: ObservableObject {
     let playlistID: Int
-    var detail: PlaylistDetail?
-    var tracks: [Track] = []
-    var privileges: [Int: TrackPrivilege] = [:]
-    var isLoading = true
-    var isLoadingMore = false
-    var errorMessage: String?
-    var filter = ""
+    @Published var detail: PlaylistDetail?
+    @Published var tracks: [Track] = []
+    @Published var privileges: [Int: TrackPrivilege] = [:]
+    @Published var isLoading = true
+    @Published var isLoadingMore = false
+    @Published var errorMessage: String?
+    @Published var filter = ""
 
     init(playlistID: Int) {
         self.playlistID = playlistID
@@ -70,16 +70,16 @@ struct PlaylistDetailView: View {
     let playlistID: Int
     var isLikedList = false
 
-    @State private var model: PlaylistDetailViewModel
-    @Environment(PlayerService.self) private var player
-    @Environment(AccountStore.self) private var account
+    @StateObject private var model: PlaylistDetailViewModel
+    @EnvironmentObject private var player: PlayerService
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showFullDescription = false
 
     init(playlistID: Int, isLikedList: Bool = false) {
         self.playlistID = playlistID
         self.isLikedList = isLikedList
-        _model = State(initialValue: PlaylistDetailViewModel(playlistID: playlistID))
+        _model = StateObject(wrappedValue: PlaylistDetailViewModel(playlistID: playlistID))
     }
 
     private var isOwnPlaylist: Bool {
@@ -195,7 +195,7 @@ struct PlaylistDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .sheet(isPresented: $showFullDescription) {
-                    NavigationStack {
+                    NavigationView {
                         ScrollView {
                             Text(description)
                                 .font(.system(size: 14))
@@ -211,6 +211,7 @@ struct PlaylistDetailView: View {
                             }
                         }
                     }
+                    .navigationViewStyle(StackNavigationViewStyle())
                 }
             }
 
@@ -369,7 +370,7 @@ struct PlaylistDetailView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                TextField("搜索歌单内歌曲", text: Bindable(model).filter)
+                TextField("搜索歌单内歌曲", text: $model.filter)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .frame(width: 130)

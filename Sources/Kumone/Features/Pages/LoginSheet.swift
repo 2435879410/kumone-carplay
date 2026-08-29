@@ -33,7 +33,7 @@ struct LoginSheet: View {
     @State private var smsMessage: String?
     @State private var cooldownTask: Task<Void, Never>?
 
-    @Environment(AccountStore.self) private var account
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
 
@@ -77,13 +77,13 @@ struct LoginSheet: View {
         }
         // Coming back from the NetEase app (single-device flow): if polling
         // died while we were in the background, pick it up again.
-        .onChange(of: scenePhase) {
-            guard scenePhase == .active, mode == .qr else { return }
+        .onChange(of: scenePhase) { newPhase in
+            guard newPhase == .active, mode == .qr else { return }
             if case .failed = phase { startLogin(reusingKey: true) }
             else if pollTask == nil || pollTask?.isCancelled == true { startLogin(reusingKey: true) }
         }
-        .onChange(of: mode) {
-            if mode == .qr, case .failed = phase { startLogin(reusingKey: true) }
+        .onChange(of: mode) { newMode in
+            if newMode == .qr, case .failed = phase { startLogin(reusingKey: true) }
         }
     }
 
@@ -206,7 +206,7 @@ struct LoginSheet: View {
 
                 var consecutiveErrors = 0
                 while !Task.isCancelled {
-                    try await Task.sleep(for: .seconds(1.2))
+                    try await Task.sleep(nanoseconds: 1_200_000_000)
                     let check: NeteaseAPI.QRCheckResponse
                     do {
                         check = try await NeteaseAPI.qrCheck(unikey: key)
@@ -331,7 +331,7 @@ struct LoginSheet: View {
                 cooldownTask?.cancel()
                 cooldownTask = Task {
                     while smsCooldown > 0, !Task.isCancelled {
-                        try? await Task.sleep(for: .seconds(1))
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
                         smsCooldown -= 1
                     }
                 }

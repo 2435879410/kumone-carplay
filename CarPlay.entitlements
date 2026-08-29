@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- CarPlay Audio App 权限：签名时注入此文件即可让应用出现在车机 CarPlay 主屏。 -->
+    <!-- iOS 15 TrollStore build: force the MediaPlayer playable-content path. -->
     <key>com.apple.developer.playable-content</key>
     <true/>
 </dict>

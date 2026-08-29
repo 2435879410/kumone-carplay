@@ -1,5 +1,5 @@
 #!/bin/bash
-# 检查 IPA 是否带 CarPlay 权限（com.apple.developer.playable-content）
+# 检查 IPA 是否带 iOS 14+ CarPlay 音频权限
 # 用法: Scripts/check-carplay-entitlements.sh <xxx.ipa>
 set -euo pipefail
 
@@ -25,7 +25,7 @@ echo
 echo "=== 2) 嵌入式描述文件 embedded.mobileprovision ==="
 PROF="$APP_DIR/embedded.mobileprovision"
 if [[ -f "$PROF" ]]; then
-  if security cms -D -i "$PROF" 2>/dev/null | grep -q 'com.apple.developer.playable-content'; then
+  if security cms -D -i "$PROF" 2>/dev/null | grep -q 'com.apple.developer.carplay-audio'; then
     echo "描述文件含 CarPlay 权限 ✅"
   else
     echo "描述文件不含 CarPlay 权限 ❌（个人免费证书的普遍情况）"
@@ -37,10 +37,13 @@ echo
 
 echo "=== 3) 二进制实际 entitlements（最终判定） ==="
 ENT="$("$ROOT/tools-bin/ldid" -e "$BIN" 2>/dev/null || true)"
-if echo "$ENT" | grep -q 'com.apple.developer.playable-content'; then
-  echo "✅ 有 CarPlay 权限（com.apple.developer.playable-content = true），车机主屏应能显示 Kumone"
+if echo "$ENT" | grep -A1 'com.apple.developer.carplay-audio' | grep -q '<true/>'; then
+  echo "✅ 有 iOS 14+ CarPlay 音频权限（com.apple.developer.carplay-audio = true）"
+  if echo "$ENT" | grep -A1 'com.apple.developer.playable-content' | grep -q '<true/>'; then
+    echo "✅ 同时保留旧式 playable-content 权限"
+  fi
   echo "$ENT" | head -20
 else
-  echo "❌ 没有 CarPlay 权限：车机上不会出现 Kumone（手机端功能不受影响）"
+  echo "❌ 没有 com.apple.developer.carplay-audio：iOS 15 车机上不会出现 Kumone"
   echo "   修复：用 Scripts/sign-ipa-ldid.sh 重新预签名，或 ESign 导入 CarPlay.entitlements 后重签。"
 fi

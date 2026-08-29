@@ -38,21 +38,36 @@ enum LyricsParser {
     /// per line and both `.` / `:` millisecond separators.
     static func parseLRC(_ lrc: String) -> [(time: TimeInterval, text: String)] {
         var result: [(TimeInterval, String)] = []
-        let timeTag = #/\[(\d+):(\d+)(?:[.:](\d+))?\]/#
+        guard let timeTag = try? NSRegularExpression(
+            pattern: #"\[(\d+):(\d+)(?:[.:](\d+))?\]"#
+        ) else {
+            return result
+        }
 
         for rawLine in lrc.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
-            let matches = line.matches(of: timeTag)
+            let nsLine = line as NSString
+            let matches = timeTag.matches(
+                in: line,
+                range: NSRange(location: 0, length: nsLine.length)
+            )
             guard !matches.isEmpty else { continue }
             guard let lastMatch = matches.last else { continue }
-            let content = String(line[lastMatch.range.upperBound...])
+            let contentStart = lastMatch.range.location + lastMatch.range.length
+            let content = nsLine.substring(from: contentStart)
                 .trimmingCharacters(in: .whitespaces)
             for match in matches {
-                let min = Double(match.output.1) ?? 0
-                let sec = Double(match.output.2) ?? 0
+                func capture(_ index: Int) -> String? {
+                    let range = match.range(at: index)
+                    guard range.location != NSNotFound else { return nil }
+                    return nsLine.substring(with: range)
+                }
+
+                let min = Double(capture(1) ?? "") ?? 0
+                let sec = Double(capture(2) ?? "") ?? 0
                 var frac = 0.0
-                if let msStr = match.output.3, let ms = Double(msStr) {
+                if let msStr = capture(3), let ms = Double(msStr) {
                     frac = ms / pow(10, Double(msStr.count))
                 }
                 result.append((min * 60 + sec + frac, content))

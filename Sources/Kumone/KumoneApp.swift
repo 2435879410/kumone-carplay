@@ -4,20 +4,20 @@ import SwiftUI
 public struct KumoneApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    @State private var player = PlayerService.shared
-    @State private var account = AccountStore.shared
-    @State private var settings = SettingsManager.shared
-    @State private var toasts = ToastCenter.shared
+    @StateObject private var player = PlayerService.shared
+    @StateObject private var account = AccountStore.shared
+    @StateObject private var settings = SettingsManager.shared
+    @StateObject private var toasts = ToastCenter.shared
 
     public init() {}
 
     public var body: some Scene {
         WindowGroup("Kumone", id: "main") {
             MainWindow()
-                .environment(player)
-                .environment(account)
-                .environment(settings)
-                .environment(toasts)
+                .environmentObject(player)
+                .environmentObject(account)
+                .environmentObject(settings)
+                .environmentObject(toasts)
                 .tint(Theme.accent)
                 .preferredColorScheme(settings.appearance.colorScheme)
                 .frame(minWidth: Theme.Layout.minWindowWidth,
@@ -73,8 +73,8 @@ public struct KumoneApp: App {
 
         Settings {
             SettingsView()
-                .environment(account)
-                .environment(settings)
+                .environmentObject(account)
+                .environmentObject(settings)
                 .tint(Theme.accent)
                 .preferredColorScheme(settings.appearance.colorScheme)
         }
