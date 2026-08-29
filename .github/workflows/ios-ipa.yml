@@ -40,9 +40,10 @@ jobs:
           SCENE_PATH=":UIApplicationSceneManifest:UISceneConfigurations:CPTemplateApplicationSceneSessionRoleApplication:0"
           test "$(/usr/libexec/PlistBuddy -c "Print $SCENE_PATH:UISceneClassName" "$APP/Info.plist")" = "CPTemplateApplicationScene"
           test "$(/usr/libexec/PlistBuddy -c "Print $SCENE_PATH:UISceneDelegateClassName" "$APP/Info.plist")" = "KumoneIOS.KumoneIOSCarPlaySceneDelegate"
-          strings "$BIN" | grep -q 'KumoneIOSCarPlaySceneDelegate'
-          strings "$BIN" | grep -q 'templateApplicationScene:didConnectInterfaceController:'
-          strings "$BIN" | grep -q 'templateApplicationScene:didConnectInterfaceController:toWindow:'
+          strings "$BIN" > "$RUNNER_TEMP/kumone-ios-strings.txt"
+          grep -q 'KumoneIOSCarPlaySceneDelegate' "$RUNNER_TEMP/kumone-ios-strings.txt"
+          grep -q 'templateApplicationScene:didConnectInterfaceController:' "$RUNNER_TEMP/kumone-ios-strings.txt"
+          grep -q 'templateApplicationScene:didConnectInterfaceController:toWindow:' "$RUNNER_TEMP/kumone-ios-strings.txt"
 
           mkdir -p payload/Payload
           cp -R "$APP" payload/Payload/
